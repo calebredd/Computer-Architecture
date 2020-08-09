@@ -2,41 +2,60 @@
 
 import sys
 
+
 class CPU:
     """Main CPU class."""
 
     def __init__(self):
         """Construct a new CPU."""
-        pass
+        self.ram = {}
+        self.reg = {}
+        self.pc = 0
+        # self.ie = 0
+        self.running = 0
 
-    def load(self):
+    def load(self, program):
         """Load a program into memory."""
 
         address = 0
-
+        file1 = open(program, 'r')
+        program = file1.readlines()
         # For now, we've just hardcoded a program:
-
-        program = [
-            # From print8.ls8
-            0b10000010, # LDI R0,8
-            0b00000000,
-            0b00001000,
-            0b01000111, # PRN R0
-            0b00000000,
-            0b00000001, # HLT
-        ]
+        # program = [
+            # # From print8.ls8
+            # 0b10000010, # LDI R0,8
+            # 0b00000000,
+            # 0b00001000,
+            # 0b01000111, # PRN R0
+            # 0b00000000,
+            # 0b00000001, # HLT
+        # ]
 
         for instruction in program:
-            self.ram[address] = instruction
-            address += 1
+            if instruction[0].isdigit():
+                self.ram[address] = instruction[:8]
+                address += 1
 
+
+    def ram_read(self, r):
+        return self.ram[r]
+
+    def ram_write(self, operand_a, operand_b):
+        operand_a = self.ram_read(operand_a)
+        operand_b = self.ram_read(operand_b)
+        self.reg[operand_a]=operand_b
 
     def alu(self, op, reg_a, reg_b):
         """ALU operations."""
 
         if op == "ADD":
             self.reg[reg_a] += self.reg[reg_b]
-        #elif op == "SUB": etc
+        elif op == "SUB": 
+            self.reg[reg_a] -= self.reg[reg_b]
+        elif op == "MUL": 
+            self.reg[reg_a] = f'{int(self.reg[reg_a],2) * int(self.reg[reg_b],2):08b}'
+        elif op == "DIV": 
+            self.reg[reg_a] /= self.reg[reg_b]
         else:
             raise Exception("Unsupported ALU operation")
 
@@ -62,4 +81,33 @@ class CPU:
 
     def run(self):
         """Run the CPU."""
-        pass
+        self.running = 1
+        while self.running and self.pc < len(self.ram):
+            num_operands = 1
+            command = self.ram[self.pc]
+            if command[0:2] == '01':  #Has 1 operands, increment by 2 after iteration of fx
+                num_operands += 1
+            if command[0:2] == '10':  #Has 2 operands, increment by 3 after iteration of fx
+                num_operands += 2
+            if command[2:3] == '1':  #ALU, runs arithmetic
+                if command[3:] == '00010': 
+                    self.alu('MUL', self.ram_read(self.pc+1), self.ram_read(self.pc+2))
+            elif command[3:] == '00001': #HLT, exits program
+                self.running = 0
+                exit()
+            elif command[3:] == '00111': #PRN, returns value at index
+                index = self.ram_read(self.pc+1)
+                number_to_print = self.reg[index]
+                print(int(number_to_print, 2))
+            elif command[3:] == '00010': #LDI, store value
+                self.ram_write(self.pc+1, self.pc+2)
+            elif command[3:] == '00101': #PUSH, adds value at index to stack
+                print("Push Triggered")
+                index = self.ram_read(self.pc+1)
+                self.reg['00000010'] = self.reg[index]
+            elif command[3:] == '00110': #POP, removes value from index of stack
+                print("Pop Triggered")
+                index = self.ram_read(self.pc+1)
+                # self.reg[index] = None
+            self.pc+=num_operands
+            
