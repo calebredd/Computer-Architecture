@@ -50,7 +50,12 @@ class CPU:
 
         if op == "ADD":
             self.reg[reg_a] += self.reg[reg_b]
-        #elif op == "SUB": etc
+        elif op == "SUB": 
+            self.reg[reg_a] -= self.reg[reg_b]
+        elif op == "MUL": 
+            self.reg[reg_a] = f'{int(self.reg[reg_a],2) * int(self.reg[reg_b],2):08b}'
+        elif op == "DIV": 
+            self.reg[reg_a] /= self.reg[reg_b]
         else:
             raise Exception("Unsupported ALU operation")
 
@@ -78,19 +83,31 @@ class CPU:
         """Run the CPU."""
         self.running = 1
         while self.running and self.pc < len(self.ram):
+            num_operands = 1
             command = self.ram[self.pc]
-            if command == '00000001':
+            if command[0:2] == '01':  #Has 1 operands, increment by 2 after iteration of fx
+                num_operands += 1
+            if command[0:2] == '10':  #Has 2 operands, increment by 3 after iteration of fx
+                num_operands += 2
+            if command[2:3] == '1':  #ALU, runs arithmetic
+                if command[3:] == '00010': 
+                    self.alu('MUL', self.ram_read(self.pc+1), self.ram_read(self.pc+2))
+            elif command[3:] == '00001': #HLT, exits program
                 self.running = 0
-                self.pc=0
                 exit()
-            elif command == '01000111':
+            elif command[3:] == '00111': #PRN, returns value at index
                 index = self.ram_read(self.pc+1)
                 number_to_print = self.reg[index]
                 print(int(number_to_print, 2))
-                self.pc+=1
-            elif command == '10000010':
+            elif command[3:] == '00010': #LDI, store value
                 self.ram_write(self.pc+1, self.pc+2)
-                self.pc+=2
-            else:
-                self.pc+=1
+            elif command[3:] == '00101': #PUSH, adds value at index to stack
+                print("Push Triggered")
+                index = self.ram_read(self.pc+1)
+                self.reg['00000010'] = self.reg[index]
+            elif command[3:] == '00110': #POP, removes value from index of stack
+                print("Pop Triggered")
+                index = self.ram_read(self.pc+1)
+                # self.reg[index] = None
+            self.pc+=num_operands
             
