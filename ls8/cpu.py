@@ -9,7 +9,8 @@ class CPU:
     def __init__(self):
         """Construct a new CPU."""
         self.ram = {}
-        self.reg = {}
+        self.reg = [None] * 8
+        self.sp = len(self.reg)
         self.pc = 0
         # self.ie = 0
         self.running = 0
@@ -38,7 +39,7 @@ class CPU:
 
 
     def ram_read(self, r):
-        return self.ram[r]
+        return int(self.ram[r],2)
 
     def ram_write(self, operand_a, operand_b):
         operand_a = self.ram_read(operand_a)
@@ -53,7 +54,7 @@ class CPU:
         elif op == "SUB": 
             self.reg[reg_a] -= self.reg[reg_b]
         elif op == "MUL": 
-            self.reg[reg_a] = f'{int(self.reg[reg_a],2) * int(self.reg[reg_b],2):08b}'
+            self.reg[reg_a] = f'{self.reg[reg_a] * self.reg[reg_b]}'
         elif op == "DIV": 
             self.reg[reg_a] /= self.reg[reg_b]
         else:
@@ -98,16 +99,17 @@ class CPU:
             elif command[3:] == '00111': #PRN, returns value at index
                 index = self.ram_read(self.pc+1)
                 number_to_print = self.reg[index]
-                print(int(number_to_print, 2))
+                print(number_to_print)
             elif command[3:] == '00010': #LDI, store value
                 self.ram_write(self.pc+1, self.pc+2)
             elif command[3:] == '00101': #PUSH, adds value at index to stack
-                print("Push Triggered")
+                self.sp -=1
                 index = self.ram_read(self.pc+1)
-                self.reg['00000010'] = self.reg[index]
+                self.reg[self.sp] = self.reg[index]
             elif command[3:] == '00110': #POP, removes value from index of stack
-                print("Pop Triggered")
                 index = self.ram_read(self.pc+1)
-                # self.reg[index] = None
+                popper = self.reg[self.sp]
+                self.sp +=1
+                self.reg[index] = popper
             self.pc+=num_operands
             
