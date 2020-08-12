@@ -13,6 +13,7 @@ class CPU:
         self.sp = len(self.reg)
         self.pc = 0
         self.ir = self.pc
+        self.fl = None
         # self.ie = 0
         self.running = 0
 
@@ -58,6 +59,19 @@ class CPU:
             self.reg[reg_a] = f'{self.reg[reg_a] * self.reg[reg_b]}'
         elif op == "DIV": 
             self.reg[reg_a] /= self.reg[reg_b]
+        elif op == "CMP": 
+            if self.reg[reg_a] == self.reg[reg_b]:
+                return 'JEQ'
+            elif self.reg[reg_a] != self.reg[reg_b]:
+                return 'JNE'
+            elif self.reg[reg_a] <= self.reg[reg_b]:
+                return 'JLE'
+            elif self.reg[reg_a] >= self.reg[reg_b]:
+                return 'JGE'
+            elif self.reg[reg_a] > self.reg[reg_b]:
+                return 'JGT'
+            elif self.reg[reg_a] < self.reg[reg_b]:
+                return 'JLT'
         else:
             raise Exception("Unsupported ALU operation")
 
@@ -96,6 +110,8 @@ class CPU:
                     self.alu('MUL', self.ram_read(self.pc+1), self.ram_read(self.pc+2))
                 elif command[3:] == '00000': 
                     self.alu('ADD', self.ram_read(self.pc+1), self.ram_read(self.pc+2))
+                elif command[3:] == '00111': 
+                    self.fl = self.alu('CMP', self.ram_read(self.pc+1), self.ram_read(self.pc+2))
             elif command[3:] == '00001': #HLT, exits program
                 self.running = 0
                 exit()
@@ -119,8 +135,47 @@ class CPU:
                     index = self.ram_read(self.pc+1)
                     self.ir = self.pc+2
                     self.pc=self.reg[index]
-                if command[4:] == '0001': 
+                elif command[4:] == '0001': 
                     self.pc = self.ir
+                elif command[4:] == '0101': 
+                    index = self.ram_read(self.pc+1)
+                    if self.fl == 'JEQ':
+                        self.pc = self.reg[index]
+                    else:
+                        self.pc+=2
+                elif command[4:] == '0110': 
+                    index = self.ram_read(self.pc+1)
+                    if self.fl == 'JNE':
+                        self.pc = self.reg[index]
+                    else:
+                        self.pc+=2
+                elif command[4:] == '0111': 
+                    index = self.ram_read(self.pc+1)
+                    if self.fl == 'JGT':
+                        self.pc = self.reg[index]
+                    else:
+                        self.pc+=2
+                elif command[4:] == '1000': 
+                    index = self.ram_read(self.pc+1)
+                    if self.fl == 'JLT':
+                        self.pc = self.reg[index]
+                    else:
+                        self.pc+=2
+                elif command[4:] == '1001': 
+                    index = self.ram_read(self.pc+1)
+                    if self.fl == 'JLE':
+                        self.pc = self.reg[index]
+                    else:
+                        self.pc+=2
+                elif command[4:] == '1010': 
+                    index = self.ram_read(self.pc+1)
+                    if self.fl == 'JGE':
+                        self.pc = self.reg[index]
+                    else:
+                        self.pc+=2
+                elif command[4:] == '0100': #JMP command
+                    index = self.ram_read(self.pc+1)
+                    self.pc = self.reg[index]
             else:
                 self.pc+=num_operands
             
