@@ -12,6 +12,7 @@ class CPU:
         self.reg = [None] * 8
         self.sp = len(self.reg)
         self.pc = 0
+        self.ir = self.pc
         # self.ie = 0
         self.running = 0
 
@@ -93,6 +94,8 @@ class CPU:
             if command[2:3] == '1':  #ALU, runs arithmetic
                 if command[3:] == '00010': 
                     self.alu('MUL', self.ram_read(self.pc+1), self.ram_read(self.pc+2))
+                elif command[3:] == '00000': 
+                    self.alu('ADD', self.ram_read(self.pc+1), self.ram_read(self.pc+2))
             elif command[3:] == '00001': #HLT, exits program
                 self.running = 0
                 exit()
@@ -111,5 +114,13 @@ class CPU:
                 popper = self.reg[self.sp]
                 self.sp +=1
                 self.reg[index] = popper
-            self.pc+=num_operands
+            if command[3:4] == '1':  #Maual PC setting
+                if command[4:] == '0000': 
+                    index = self.ram_read(self.pc+1)
+                    self.ir = self.pc+2
+                    self.pc=self.reg[index]
+                if command[4:] == '0001': 
+                    self.pc = self.ir
+            else:
+                self.pc+=num_operands
             
